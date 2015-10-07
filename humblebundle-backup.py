@@ -21,7 +21,10 @@ Usage: enter the content of your authentication cookie ("_simpleauth_sess"
        Linux package formats it will only download the first in the list.
 
        You can check which files are still missing in you target directory
-       by passing "--list-missing-files-only" as a commandline argument.
+       by passing "--list-missing-only" as a commandline argument. You can
+       also speed the process up by disabling the check for correct local
+       filesizes for redownloading stuff in case of wrong filesize by passing
+       "--no-filesize-check".
 
        Have fun!
 """
@@ -30,7 +33,7 @@ Usage: enter the content of your authentication cookie ("_simpleauth_sess"
 Edit this
 """
 # The content of the auth-cookie should be a huge string with random letters and numbers.
-auth = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+auth = ""
 # Insert you target directory of choice. Multiple subfolders corresponding
 # to the different Games will be created in the target directory.
 target_dir = ""
@@ -50,6 +53,24 @@ CLAIMED_ENTITIES_URL = 'https://www.humblebundle.com/api/v1/user/claimed/entitie
 SIGNED_DOWNLOAD_URL = 'https://www.humblebundle.com/api/v1/user/Download/{0}/sign'
 STORE_URL = 'https://www.humblebundle.com/store/api/humblebundle'
 
+def download_file(opened_url, file_size, target_file_name):
+    f = open(target_file_name, 'wb')
+    print "Downloading: {0}, Size: {1:.1f} MB.".format(target_file_name, file_size / 1024.0**2)
+    file_size_dl = 0
+    block_sz = 8192
+    while True:
+        buffer = u.read(block_sz)
+        if not buffer:
+            break
+
+        file_size_dl += len(buffer)
+        f.write(buffer)
+        status = r"%10d  [%3.2f%%]" % (file_size_dl, file_size_dl * 100. / file_size)
+        status = status + chr(8)*(len(status)+1)
+        print status,
+
+    f.close()
+
 if auth == "" or auth == None:
     print "Authentication cookie content missing!"
     sys.exit()
@@ -58,7 +79,8 @@ if target_dir == None:
     print "Target dir unspecified!"
     sys.exit()
 
-list_missing_files_only = "--list-missing-files-only" in sys.argv
+list_missing_only = "--list-missing-only" in sys.argv
+no_filesize_check = "--no-filesize-check" in sys.argv
 
 if target_dir != "" and target_dir[-1] != "/":
     target_dir = target_dir + "/"
@@ -79,7 +101,7 @@ data = json.loads(r.text.replace("\u00fc", "u"))
 
 target_folder_dict = {}
 
-if not list_missing_files_only:
+if not list_missing_only:
     print "Calculating total library size.."
     total_size = 0
     for item in data["Downloads"]:
@@ -103,41 +125,34 @@ for item in data["SubProducts"]:
     for machine_name in item["_filtered_download_machine_names"]:
         target_folder_dict[machine_name] = human_name
 
-if not list_missing_files_only:
+if not list_missing_only:
     for item in data["SubProducts"]:
         human_name = item["human_name"]
         # Unfortunately, there is not a machine name for every download to generate
         # a signed URL. Downloads with more than one flavor (mp3, FLAC) will only
         # download the first in the download_struct dictionary.
         # See entities file for understanding this problem.
-        for machine_name in item["_filtered_download_machine_names"]:
-            r = requests.get(SIGNED_DOWNLOAD_URL.format(machine_name), cookies=cookiejar)
-            if "signed_url" in json.loads(r.text).keys():
-                url = json.loads(r.text)["signed_url"]
-                file_name = target_dir + human_name + "/" + url.split("?")[0].split("/")[-1]
-                u = urllib2.urlopen(url)
-                meta = u.info()
-                file_size = int(meta.getheaders("Content-Length")[0])
-                # Check if the file already exists and has the right size
-                if (not os.path.isfile(file_name)) or os.path.getsize(file_name) != file_size:
-                    f = open(file_name, 'wb')
-                    print "Downloading: {0}, Size: {1:.1f} MB.".format(file_name, file_size / 1024.0**2)
-                    file_size_dl = 0
-                    block_sz = 8192
-                    while True:
-                        buffer = u.read(block_sz)
-                        if not buffer:
-                            break
-
-                        file_size_dl += len(buffer)
-                        f.write(buffer)
-                        status = r"%10d  [%3.2f%%]" % (file_size_dl, file_size_dl * 100. / file_size)
-                        status = status + chr(8)*(len(status)+1)
-                        print status,
-
-                    f.close()
+        # Machine names with the "_asm" ending (Browsergames) are excluded.
+        for machine_name in [i for i in item["_filtered_download_machine_names"] if not i.endswith("_asm")]:
+            file_name = target_dir + human_name + "/" + [i for i in data["Downloads"] if i["machine_name"] == machine_name][0]["download_struct"][0]["url"]["web"]
+            if os.path.isfile(file_name):
+                if no_filesize_check:
+                    print chr(8) + "File {0} already exists.".format(file_name)
+                    break
                 else:
-                    print chr(8) + "File {0} already exists and has correct size.".format(file_name)
+                    local_file_size = os.path.getsize(file_name)
+            else:
+                local_file_size = 0
+            r = requests.get(SIGNED_DOWNLOAD_URL.format(machine_name), cookies=cookiejar)
+            url = json.loads(r.text)["signed_url"]
+            u = urllib2.urlopen(url)
+            meta = u.info()
+            file_size = int(meta.getheaders("Content-Length")[0])
+            # Check if the file already exists and has the right size
+            if local_file_size != file_size:
+                download_file(u, file_size, file_name)
+            else:
+                print chr(8) + "File {0} already exists and has correct size.".format(file_name)
 
     print "All downloads complete!"
 

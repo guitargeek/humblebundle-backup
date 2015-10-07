@@ -23,6 +23,7 @@ Linux package formats it will only download the first in the list.
 
 You can check which files are still missing in you target directory,
 for example for downloading the missing files manually, by passing "--list-missing-files-only" as a commandline argument.
+You can also speed the process up by disabling the check for correct local filesizes for redownloading files in case of wrong filesize by passing "--no-filesize-check".
 
 Have fun!
 
