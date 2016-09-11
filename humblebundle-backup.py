@@ -55,7 +55,7 @@ STORE_URL = 'https://www.humblebundle.com/store/api/humblebundle'
 
 def download_file(opened_url, file_size, target_file_name):
     f = open(target_file_name, 'wb')
-    print "Downloading: {0}, Size: {1:.1f} MB.".format(target_file_name, file_size / 1024.0**2)
+    print u"Downloading: {0}, Size: {1:.1f} MB.".format(target_file_name, file_size / 1024.0**2)
     file_size_dl = 0
     block_sz = 8192
     while True:
@@ -152,7 +152,7 @@ if not list_missing_only:
             if local_file_size != file_size:
                 download_file(u, file_size, file_name)
             else:
-                print chr(8) + "File {0} already exists and has correct size.".format(file_name)
+                print chr(8) + u"File {0} already exists and has correct size.".format(file_name)
 
     print "All downloads complete!"
 
