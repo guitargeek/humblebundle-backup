@@ -55,7 +55,7 @@ STORE_URL = 'https://www.humblebundle.com/store/api/humblebundle'
 
 def download_file(opened_url, file_size, target_file_name):
     f = open(target_file_name, 'wb')
-    print "Downloading: {0}, Size: {1:.1f} MB.".format(target_file_name, file_size / 1024.0**2)
+    print u"Downloading: {0}, Size: {1:.1f} MB.".format(target_file_name, file_size / 1024.0**2)
     file_size_dl = 0
     block_sz = 8192
     while True:
