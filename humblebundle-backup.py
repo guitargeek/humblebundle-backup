@@ -152,7 +152,7 @@ if not list_missing_only:
             if local_file_size != file_size:
                 download_file(u, file_size, file_name)
             else:
-                print chr(8) + "File {0} already exists and has correct size.".format(file_name)
+                print chr(8) + u"File {0} already exists and has correct size.".format(file_name)
 
     print "All downloads complete!"
 
