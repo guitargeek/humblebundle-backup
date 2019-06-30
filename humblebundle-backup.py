@@ -36,6 +36,7 @@ Edit this
 from __future__ import absolute_import
 from __future__ import print_function
 from six.moves import input
+
 auth = ""
 # Insert you target directory of choice. Multiple subfolders corresponding
 # to the different Games will be created in the target directory.
@@ -49,16 +50,17 @@ import requests, six.moves.http_cookiejar, os, sys, json, six.moves.urllib.reque
 from six.moves.urllib.parse import urljoin, urlsplit
 
 URL = "https://www.humblebundle.com"
-LOGIN_URL = 'https://www.humblebundle.com/login'
-ORDER_LIST_URL = 'https://www.humblebundle.com/api/v1/user/order'
-ORDER_URL = 'https://www.humblebundle.com/api/v1/order/{order_id}'
-CLAIMED_ENTITIES_URL = 'https://www.humblebundle.com/api/v1/user/claimed/entities'
-SIGNED_DOWNLOAD_URL = 'https://www.humblebundle.com/api/v1/user/Download/{0}/sign'
-STORE_URL = 'https://www.humblebundle.com/store/api/humblebundle'
+LOGIN_URL = "https://www.humblebundle.com/login"
+ORDER_LIST_URL = "https://www.humblebundle.com/api/v1/user/order"
+ORDER_URL = "https://www.humblebundle.com/api/v1/order/{order_id}"
+CLAIMED_ENTITIES_URL = "https://www.humblebundle.com/api/v1/user/claimed/entities"
+SIGNED_DOWNLOAD_URL = "https://www.humblebundle.com/api/v1/user/Download/{0}/sign"
+STORE_URL = "https://www.humblebundle.com/store/api/humblebundle"
+
 
 def download_file(opened_url, file_size, target_file_name):
-    f = open(target_file_name, 'wb')
-    print(u"Downloading: {0}, Size: {1:.1f} MB.".format(target_file_name, file_size / 1024.0**2))
+    f = open(target_file_name, "wb")
+    print(u"Downloading: {0}, Size: {1:.1f} MB.".format(target_file_name, file_size / 1024.0 ** 2))
     file_size_dl = 0
     block_sz = 8192
     while True:
@@ -68,11 +70,12 @@ def download_file(opened_url, file_size, target_file_name):
 
         file_size_dl += len(buffer)
         f.write(buffer)
-        status = r"%10d  [%3.2f%%]" % (file_size_dl, file_size_dl * 100. / file_size)
-        status = status + chr(8)*(len(status)+1)
-        print(status, end=' ')
+        status = r"%10d  [%3.2f%%]" % (file_size_dl, file_size_dl * 100.0 / file_size)
+        status = status + chr(8) * (len(status) + 1)
+        print(status, end=" ")
 
     f.close()
+
 
 if auth == "" or auth == None:
     print("Authentication cookie content missing!")
@@ -90,12 +93,25 @@ if target_dir != "" and target_dir[-1] != "/":
 
 # Create a cookiejar with the authentication cookie inside
 cookiejar = six.moves.http_cookiejar.MozillaCookieJar()
-expires = int(auth.split('|')[1]) + 730 * 24 * 60 * 60
-cookie = six.moves.http_cookiejar.Cookie(version = 0, name = '_simpleauth_sess', value = auth,
-          port = None, port_specified = False, domain = urlsplit(URL)[1],
-          domain_specified = False, domain_initial_dot = False, path = '/',
-          path_specified = False, secure = True, expires = expires,
-          discard = False, comment = None, comment_url = None, rest={},)
+expires = int(auth.split("|")[1]) + 730 * 24 * 60 * 60
+cookie = six.moves.http_cookiejar.Cookie(
+    version=0,
+    name="_simpleauth_sess",
+    value=auth,
+    port=None,
+    port_specified=False,
+    domain=urlsplit(URL)[1],
+    domain_specified=False,
+    domain_initial_dot=False,
+    path="/",
+    path_specified=False,
+    secure=True,
+    expires=expires,
+    discard=False,
+    comment=None,
+    comment_url=None,
+    rest={},
+)
 cookiejar.set_cookie(cookie)
 
 print("Get list with all claimed entities from humblebundle.com...")
@@ -113,7 +129,7 @@ if not list_missing_only:
             if "file_size" in list(download.keys()):
                 total_size = total_size + download["file_size"]
 
-    proceed = input("Total library size will be {0:.2f} GB. Continue? [y/n]: ".format(total_size / 1024.0**3))
+    proceed = input("Total library size will be {0:.2f} GB. Continue? [y/n]: ".format(total_size / 1024.0 ** 3))
     while proceed.lower() != "y":
         if proceed.lower() == "n":
             sys.exit()
@@ -137,7 +153,14 @@ if not list_missing_only:
         # See entities file for understanding this problem.
         # Machine names with the "_asm" ending (Browsergames) are excluded.
         for machine_name in [i for i in item["_filtered_download_machine_names"] if not i.endswith("_asm")]:
-            file_name = target_dir + human_name + "/" + [i for i in data["Downloads"] if i["machine_name"] == machine_name][0]["download_struct"][0]["url"]["web"]
+            file_name = (
+                target_dir
+                + human_name
+                + "/"
+                + [i for i in data["Downloads"] if i["machine_name"] == machine_name][0]["download_struct"][0]["url"][
+                    "web"
+                ]
+            )
             if os.path.isfile(file_name):
                 if no_filesize_check:
                     print(chr(8) + "File {0} already exists.".format(file_name))
